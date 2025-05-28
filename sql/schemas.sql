@@ -16,8 +16,8 @@ CREATE TABLE contracts (
 CREATE TABLE prices (
     prices_id serial PRIMARY KEY,
     contract_id INT REFERENCES contracts (contract_id) ON DELETE CASCADE,
-    price DECIMAL(5, 2),
-    TIMESTAMP TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    price DECIMAL(10, 2),
+    prices_timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Automatic timestamp updates
@@ -34,3 +34,17 @@ CREATE TRIGGER contracts_update_trigger
 BEFORE UPDATE ON contracts
 FOR EACH ROW
 EXECUTE FUNCTION update_timestamp();
+
+CREATE TRIGGER prices_update_trigger
+BEFORE UPDATE ON prices
+FOR EACH ROW
+EXECUTE FUNCTION update_timestamp();
+
+-- Indexes 
+CREATE INDEX idx_contracts_market_id ON contracts(market_id);
+
+CREATE INDEX idx_prices_contract_id ON prices(contract_id);
+
+CREATE INDEX idx_contracts_updated_date ON contracts(updated_date);
+
+CREATE INDEX idx_prices_timestamp ON prices(prices_timestamp);
