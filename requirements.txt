@@ -1,0 +1,13 @@
+# Core dependencies
+requests==2.31.0
+kafka-python==2.0.2
+psycopg2-binary==2.9.9
+toml==0.10.2
+
+# Logging & utilities
+rich==13.7.0
+pydantic==2.5.3
+
+# Optional dependencies
+fastapi==0.110.1
+uvicorn==0.29.0
