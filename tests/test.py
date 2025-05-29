@@ -1,3 +1,4 @@
+import psycopg2
 from kafka_pipeline.db import insert_contract_data, insert_market_data
 
 
@@ -25,6 +26,17 @@ def test_insert_contract_data(db_connection):
         assert result[1] == 123  # Market ID
         assert result[2] == 'Test Contract'  # Contract Name
         assert result[3] == 0.50  # Current Contract Price
+        
+                # Second insert (should fail due to unique constraint)
+        try: 
+            insert_market_data(contract)
+        except psycopg2.IntegrityError:
+            db_connection.rollback()
+            
+        # Validate that only one record exists
+        cursor.execute('SELECT COUNT(*) FROM contracts WHERE contract_id = %s', (contract['id'],))
+        count = cursor.fetchone()[0]
+        assert count == 1, 'Duplicate insert should not increase row count'
 
         # Cleanup to remove test data after verification
         cursor.execute('DELETE FROM contracts WHERE contract_id = %s', (9999,))
@@ -53,7 +65,18 @@ def test_insert_market_data(db_connection):
         assert result[0] == 9999  # Market ID
         assert result[1] == 'Test Market'  # Market Name
         assert result[2] == 'Test Category'  # Category Name
-
+        
+        # Second insert (should fail due to unique constraint)
+        try: 
+            insert_market_data(market)
+        except psycopg2.IntegrityError:
+            db_connection.rollback()
+            
+        # Validate that only one record exists
+        cursor.execute('SELECT COUNT(*) FROM markets WHERE market_id = %s', (market['id'],))
+        count = cursor.fetchone()[0]
+        assert count == 1, 'Duplicate insert should not increase row count'
+        
         # Cleanup to remove test data after verification
         cursor.execute('DELETE FROM markets WHERE market_id = %s', (9999,))
         db_connection.commit()
