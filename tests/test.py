@@ -29,7 +29,7 @@ def test_insert_contract_data(db_connection):
         
                 # Second insert (should fail due to unique constraint)
         try: 
-            insert_market_data(contract)
+            insert_contract_data(contract)
         except psycopg2.IntegrityError:
             db_connection.rollback()
             
@@ -80,3 +80,12 @@ def test_insert_market_data(db_connection):
         # Cleanup to remove test data after verification
         cursor.execute('DELETE FROM markets WHERE market_id = %s', (9999,))
         db_connection.commit()
+
+def test_kafka_message_production(kafka_producer):
+    topic= 'test_topic'
+    message= {'id':1, 'data':'test message'}
+    
+    kafka_producer.send(topic, message)
+    kafka_producer.flush()
+    
+    assert True
