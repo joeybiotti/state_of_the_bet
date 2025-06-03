@@ -27,9 +27,10 @@ def kafka_producer():
 @pytest.fixture
 def kafka_consumer():
     consumer = KafkaConsumer(
-        'test_topic',
+        # 'test_topic',
         bootstrap_servers='localhost:9092',
-        auto_offset_reset='earliest',
+        group_id='test_group',
+        auto_offset_reset='latest',
         enable_auto_commit=False,
         value_deserializer=lambda x: json.loads(x.decode('utf-8'))
     )
