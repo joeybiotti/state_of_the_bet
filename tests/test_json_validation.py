@@ -44,3 +44,16 @@ def test_data_type_enforcements(json_data, expected):
     else: 
         with pytest.raises(TypeError, match='Incorrect data type for .*'):
             validate_json(json_data,schema)
+
+@pytest.mark.parametrize("json_data, expected", [
+    ({"id": 1, "data": "test message"}, True),  # Valid
+    ({"id": None, "data": "test message"}, False),  # "id" shouldn't be null
+    ({"id": 1, "data": None}, True),  # Allow nullable "data"
+])
+def test_null_value_handling(json_data, expected):
+    schema = {'id':int,'data':(str, type(None))} # Allow null for 'data'
+    if expected:
+        assert validate_json(json_data, schema)[0] is True
+    else: 
+        with pytest.raises((TypeError, ValueError), match='Incorrect data type for .*|Required field missing: .*'):
+            validate_json(json_data,schema)
