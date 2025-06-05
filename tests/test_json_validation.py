@@ -30,3 +30,17 @@ def test_required_fields(json_data, expected):
     else: 
         with pytest.raises(ValueError, match='Required field missing: .*'):
             validate_json(json_data, schema)
+            
+@pytest.mark.parametrize('json_data, expected', [
+    ({'id': 1, 'data': 'test message'}, True),  # Valid
+    ({'id': 'one', 'data': 'test message'}, False),  # Wrong data type for 'id'
+    ({'id': 1, 'data': 123}, False)  # Wrong data type for 'data'
+])
+def test_data_type_enforcements(json_data, expected):
+    schema = {'id':int, 'data': str}
+    if expected:
+        is_valid , _ = validate_json(json_data, schema)
+        assert is_valid is True
+    else: 
+        with pytest.raises(TypeError, match='Incorrect data type for .*'):
+            validate_json(json_data,schema)
