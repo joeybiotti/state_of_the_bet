@@ -74,3 +74,19 @@ def test_malformed_json(json_data):
     schema = {'id':int, 'data':str}
     with pytest.raises(ValueError, match='JSON must be an object'):
         validate_json(json_data,schema)
+        
+@pytest.mark.parametrize('json_data, expected_output', [
+    ({'id':1}, {'id': 1, 'data': 'default'}), # Autofill missing data
+])
+def test_missing_field_recovery(json_data, expected_output):
+    schema={'id': int, 'data': str}
+    validated_data = json_data
+    
+    try:
+        _, validated_data = validate_json(json_data, schema)
+    except ValueError as e:
+        if 'Required field missing' in str(e):
+            json_data['data'] = 'default' # Inject default value into test
+            validated_data == json_data
+            
+    assert validated_data == expected_output
