@@ -63,3 +63,14 @@ def test_null_value_handling(json_data, expected):
     else:
         with pytest.raises((TypeError, ValueError), match='Incorrect data type for .*|Required field missing: .*'):
             validate_json(json_data, schema)
+
+
+@pytest.mark.parametrize('json_data', [
+    'not a json object', # Invalid
+    12345, # Wrong type
+    ['list', 'instead', 'of', 'dict'] #Invalid format
+])
+def test_malformed_json(json_data):
+    schema = {'id':int, 'data':str}
+    with pytest.raises(ValueError, match='JSON must be an object'):
+        validate_json(json_data,schema)
