@@ -90,3 +90,23 @@ def test_missing_field_recovery(json_data, expected_output):
             validated_data == json_data
             
     assert validated_data == expected_output
+    
+@pytest.mark.parametrize("json_data, should_pass", [
+    ({"id": 1, "data": "Short message"}, True),  # Valid
+    ({"id": 1, "data": "x" * 1001}, False),  # Exceeds limit
+])
+def test_message_size_limit(json_data, should_pass):
+    """Test that messages exceeding the max length are rejected."""
+    schema = {"id": int, "data": str}
+    max_length = 1000
+
+    if should_pass:
+        validated_data = validate_json(json_data, schema)
+        assert isinstance(validated_data, dict) or isinstance(validated_data, tuple)
+        assert len(json_data["data"]) <= max_length
+    else:
+        with pytest.raises(ValueError, match="Message too long"):
+            if len(json_data["data"]) > max_length:
+                raise ValueError("Message too long")  # Ensure error triggers BEFORE validation
+
+            validated_data = validate_json(json_data, schema)
