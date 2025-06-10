@@ -9,7 +9,7 @@ from utils.utils import validate_json
     ({"id": 1, "data": None}, True),  # Allows nulls but warns
 ])
 def test_validate_json(json_data, expected):
-    """Test JSON validation against schema with type checks."""
+    """Test type checks and schema validation for JSON input."""
     schema = {'id': int, 'data': (str, type(None))}
     if expected:
         validate_json(json_data, schema)
@@ -66,31 +66,35 @@ def test_null_value_handling(json_data, expected):
 
 
 @pytest.mark.parametrize('json_data', [
-    'not a json object', # Invalid
-    12345, # Wrong type
-    ['list', 'instead', 'of', 'dict'] #Invalid format
+    'not a json object',  # Invalid
+    12345,  # Wrong type
+    ['list', 'instead', 'of', 'dict']  # Invalid format
 ])
 def test_malformed_json(json_data):
-    schema = {'id':int, 'data':str}
+    """Test that malformed or non-dict JSON raises a ValueError."""
+    schema = {'id': int, 'data': str}
     with pytest.raises(ValueError, match='JSON must be an object'):
-        validate_json(json_data,schema)
-        
+        validate_json(json_data, schema)
+
+
 @pytest.mark.parametrize('json_data, expected_output', [
-    ({'id':1}, {'id': 1, 'data': 'default'}), # Autofill missing data
+    ({'id': 1}, {'id': 1, 'data': 'default'}),  # Autofill missing data
 ])
 def test_missing_field_recovery(json_data, expected_output):
-    schema={'id': int, 'data': str}
+    """Test recovery by autofilling missing fields with defaults."""
+    schema = {'id': int, 'data': str}
     validated_data = json_data
-    
+
     try:
         _, validated_data = validate_json(json_data, schema)
     except ValueError as e:
         if 'Required field missing' in str(e):
-            json_data['data'] = 'default' # Inject default value into test
+            json_data['data'] = 'default'  # Inject default value into test
             validated_data == json_data
-            
+
     assert validated_data == expected_output
-    
+
+
 @pytest.mark.parametrize("json_data, should_pass", [
     ({"id": 1, "data": "Short message"}, True),  # Valid
     ({"id": 1, "data": "x" * 1001}, False),  # Exceeds limit
@@ -102,11 +106,13 @@ def test_message_size_limit(json_data, should_pass):
 
     if should_pass:
         validated_data = validate_json(json_data, schema)
-        assert isinstance(validated_data, dict) or isinstance(validated_data, tuple)
+        assert isinstance(validated_data, dict) or isinstance(
+            validated_data, tuple)
         assert len(json_data["data"]) <= max_length
     else:
         with pytest.raises(ValueError, match="Message too long"):
             if len(json_data["data"]) > max_length:
-                raise ValueError("Message too long")  # Ensure error triggers BEFORE validation
+                # Ensure error triggers BEFORE validation
+                raise ValueError("Message too long")
 
             validated_data = validate_json(json_data, schema)
