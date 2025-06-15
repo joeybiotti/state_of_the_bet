@@ -78,3 +78,5 @@ def test_insert_market_data(db_connection):
         
         cursor.execute('DELETE FROM markets WHERE market_id = %s', (9999,))
         db_connection.commit()
+
+
