@@ -83,7 +83,7 @@ def test_malformed_json(json_data):
 def test_missing_field_recovery(json_data, expected_output):
     """Test recovery by autofilling missing fields with defaults."""
     schema = {'id': int, 'data': str}
-    validated_data == json_data
+    validated_data = json_data
 
     try:
         _, validated_data = validate_json(json_data, schema)
