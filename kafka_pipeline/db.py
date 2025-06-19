@@ -1,6 +1,7 @@
 from dotenv import load_dotenv
 import os
 import psycopg2
+import psycopg2.extras
 
 # Load env variables
 load_dotenv()
@@ -55,3 +56,20 @@ def insert_contract_data(contract_data):
     except psycopg2.Error as e:
         conn.rollback()
         print(f"Postgres Error: {e}")
+
+def insert_batch_contracts(contract_list):
+    sql = """
+        INSERT INTO contracts (contract_id, market_id, name, current_price, updated_date)
+        VALUES %s
+        ON CONFLICT (contract_id) DO UPDATE
+        SET current_price = EXCLUDED.current_price, updated_date = NOW();
+    """
+    
+    values = [(c['id'],c['market_id'],c['current_price']) for c in contract_list]
+    
+    try:
+        psycopg2.extras.execute_values(cursor,sql, values)
+        conn.commit()
+    except psycopg2.Error as e:
+        conn.rollback()
+        print(f'Postgres Error {e}')
