@@ -1,6 +1,7 @@
 import pytest
 import psycopg2
-from kafka_pipeline.db import insert_contract_data, insert_market_data
+from kafka_pipeline.db import insert_contract_data, insert_market_data, insert_batch_contracts
+
 
 @pytest.mark.parametrize("contract", [
     {'id': 9991, 'market_id': 123, 'name': 'Contract A', 'current_price': 1.23},
@@ -11,7 +12,8 @@ def test_insert_contract_data(db_connection, contract):
     with db_connection.cursor() as cursor:
         insert_contract_data(contract)
 
-        cursor.execute('SELECT * FROM contracts WHERE contract_id = %s;', (contract['id'],))
+        cursor.execute(
+            'SELECT * FROM contracts WHERE contract_id = %s;', (contract['id'],))
         result = cursor.fetchone()
 
         assert result is not None
@@ -25,11 +27,13 @@ def test_insert_contract_data(db_connection, contract):
         except psycopg2.IntegrityError:
             db_connection.rollback()
 
-        cursor.execute('SELECT COUNT(*) FROM contracts WHERE contract_id = %s', (contract['id'],))
+        cursor.execute(
+            'SELECT COUNT(*) FROM contracts WHERE contract_id = %s', (contract['id'],))
         count = cursor.fetchone()[0]
         assert count == 1
 
-        cursor.execute('DELETE FROM contracts WHERE contract_id = %s;', (contract['id'],))
+        cursor.execute(
+            'DELETE FROM contracts WHERE contract_id = %s;', (contract['id'],))
         db_connection.commit()
 
 
@@ -42,7 +46,8 @@ def test_insert_market_data(db_connection, market):
     with db_connection.cursor() as cursor:
         insert_market_data(market)
 
-        cursor.execute('SELECT * FROM markets WHERE market_id = %s;', (market['id'],))
+        cursor.execute(
+            'SELECT * FROM markets WHERE market_id = %s;', (market['id'],))
         result = cursor.fetchone()
 
         assert result is not None
@@ -55,9 +60,37 @@ def test_insert_market_data(db_connection, market):
         except psycopg2.IntegrityError:
             db_connection.rollback()
 
-        cursor.execute('SELECT COUNT(*) FROM markets WHERE market_id = %s;', (market['id'],))
+        cursor.execute(
+            'SELECT COUNT(*) FROM markets WHERE market_id = %s;', (market['id'],))
         count = cursor.fetchone()[0]
         assert count == 1
 
-        cursor.execute('DELETE FROM markets WHERE market_id = %s;', (market['id'],))
+        cursor.execute(
+            'DELETE FROM markets WHERE market_id = %s;', (market['id'],))
+        db_connection.commit()
+
+
+@pytest.mark.parametrize("contracts", [
+    [
+        {'id': 7001, 'market_id': 800, 'name': 'Bulk A', 'current_price': 2.5},
+        {'id': 7002, 'market_id': 801, 'name': 'Bulk B', 'current_price': 3.5}
+    ],
+    [
+        {'id': 7003, 'market_id': 802, 'name': 'Bulk C', 'current_price': 4.5},
+        {'id': 7004, 'market_id': 803, 'name': 'Bulk D', 'current_price': 5.5}
+    ]
+])
+def test_insert_batch_contract_data(db_connection, contracts):
+    '''Test batch insert of multiple contract records using insert_batch_contracts().'''
+    with db_connection.cursor()as cursor:
+        insert_batch_contracts(contracts)
+
+        ids = tuple(c['id'] for c in contracts)
+        cursor.execute(
+            'SELECT COUNT(*) FROM contracts WHERE contract_id IN %s;', (ids,))
+        count = cursor.fetchone()[0]
+        assert count == len(contracts)
+
+        cursor.execute(
+            'DELETE FROM contracts WHERE contract_id IN %s;', (ids,))
         db_connection.commit()
