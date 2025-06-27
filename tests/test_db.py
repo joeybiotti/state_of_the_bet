@@ -1,5 +1,7 @@
 import pytest
 import psycopg2
+import time
+from datetime import datetime
 from kafka_pipeline.db import insert_contract_data, insert_market_data, insert_batch_contracts, insert_batch_market_data
 
 
@@ -119,4 +121,58 @@ def test_insert_batch_market_data(db_connection, markets):
 
         cursor.execute(
             'DELETE FROM markets WHERE market_id IN %s;', (ids,))
+        db_connection.commit()
+
+@pytest.mark.parametrize("market", [
+    {'id': 9100, 'name': 'Test Market A', 'category': 'Elections'},
+    {'id': 9101, 'name': 'Test Market B', 'category': 'Sports'},
+    {'id': 9102, 'name': 'Edge Case Market', 'category': None},
+])
+def test_market_field_storage(db_connection, market):
+    """Test that market fields are stored correctly."""
+    with db_connection.cursor() as cursor:
+        insert_market_data(market)
+
+        cursor.execute(
+            'SELECT market_id, name, category FROM markets WHERE market_id = %s;',
+            (market['id'],)
+        )
+        row = cursor.fetchone()
+        assert row == (market['id'], market['name'], market.get('category'))
+
+        cursor.execute('DELETE FROM markets WHERE market_id = %s;', (market['id'],))
+        db_connection.commit()
+        
+
+@pytest.mark.parametrize("contract", [
+    {'id': 9200, 'market_id': 800, 'name': 'Timestamp Contract A', 'current_price': 1.0},
+    {'id': 9201, 'market_id': 801, 'name': 'Timestamp Contract B', 'current_price': 2.0},
+])
+def test_contract_updated_timestamp(db_connection, contract):
+    """Test that updated_date is set and updates on conflict."""
+    with db_connection.cursor() as cursor:
+        insert_contract_data(contract)
+
+        cursor.execute(
+            'SELECT updated_date FROM contracts WHERE contract_id = %s;',
+            (contract['id'],)
+        )
+        first_ts = cursor.fetchone()[0]
+        assert isinstance(first_ts, datetime)
+
+        time.sleep(1)
+
+        # Modify and update the contract
+        contract['current_price'] += 5  # simulate price change
+        insert_contract_data(contract)
+
+        cursor.execute(
+            'SELECT updated_date FROM contracts WHERE contract_id = %s;',
+            (contract['id'],)
+        )
+        second_ts = cursor.fetchone()[0]
+
+        assert second_ts > first_ts
+
+        cursor.execute('DELETE FROM contracts WHERE contract_id = %s;', (contract['id'],))
         db_connection.commit()
