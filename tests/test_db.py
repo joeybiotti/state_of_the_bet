@@ -1,6 +1,6 @@
 import pytest
 import psycopg2
-from kafka_pipeline.db import insert_contract_data, insert_market_data, insert_batch_contracts
+from kafka_pipeline.db import insert_contract_data, insert_market_data, insert_batch_contracts, insert_batch_market_data
 
 
 @pytest.mark.parametrize("contract", [
@@ -93,4 +93,30 @@ def test_insert_batch_contract_data(db_connection, contracts):
 
         cursor.execute(
             'DELETE FROM contracts WHERE contract_id IN %s;', (ids,))
+        db_connection.commit()
+
+
+@pytest.mark.parametrize("markets", [
+    [
+        {'id': 9001, 'name': 'Market A', 'category': 'Category X'},
+        {'id': 9002, 'name': 'Market B', 'category': 'Category Y'}
+    ],
+    [
+        {'id': 9003, 'name': 'Market C', 'category': 'Category Z'},
+        {'id': 9004, 'name': 'Market D', 'category': 'Category W'}
+    ]
+])
+def test_insert_batch_market_data(db_connection, markets):
+    """Test batch insert of multiple market records using insert_batch_market_data()."""
+    with db_connection.cursor() as cursor:
+        insert_batch_market_data(markets)
+
+        ids = tuple(m['id'] for m in markets)
+        cursor.execute(
+            'SELECT COUNT(*) FROM markets WHERE market_id IN %s;', (ids,))
+        count = cursor.fetchone()[0]
+        assert count == len(markets)
+
+        cursor.execute(
+            'DELETE FROM markets WHERE market_id IN %s;', (ids,))
         db_connection.commit()
