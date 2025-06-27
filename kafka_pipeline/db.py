@@ -1,6 +1,7 @@
 from dotenv import load_dotenv
 import os
 import psycopg2
+from psycopg2.extras import execute_values
 
 # Load env variables
 load_dotenv()
@@ -22,6 +23,7 @@ cursor = conn.cursor()
 
 
 def insert_market_data(market_data):
+    """Insert or update a single market record."""
     cursor.execute(
         """
     INSERT INTO markets (market_id, name, category)
@@ -36,6 +38,7 @@ def insert_market_data(market_data):
 
 
 def insert_contract_data(contract_data):
+    """Insert or update a single contract record."""
     sql = """
         INSERT INTO contracts (contract_id, market_id, name, current_price, updated_date)
         VALUES (%s, %s, %s, %s, NOW())
@@ -51,6 +54,47 @@ def insert_contract_data(contract_data):
 
     try:
         cursor.execute(sql, values)
+        conn.commit()
+    except psycopg2.Error as e:
+        conn.rollback()
+        print(f"Postgres Error: {e}")
+
+
+def insert_batch_contracts(contract_list):
+    """Insert or update multiple contract records in batch."""
+    sql = """
+        INSERT INTO contracts (contract_id, market_id, name, current_price, updated_date)
+        VALUES %s
+        ON CONFLICT (contract_id) DO UPDATE
+        SET current_price = EXCLUDED.current_price, updated_date = NOW();
+    """
+
+    values = [(c['id'], c['market_id'], c['name'], c['current_price'])
+              for c in contract_list]
+
+    try:
+        execute_values(cursor, sql, values, template="(%s, %s, %s, %s, NOW())")
+        conn.commit()
+    except psycopg2.Error as e:
+        conn.rollback()
+        print(f"Postgres Error: {e}")
+
+
+def insert_batch_market_data(markets_list):
+    """Insert or update multiple market records in batch."""
+    sql = """
+        INSERT INTO markets (market_id, name, category)
+        VALUES %s
+        ON CONFLICT (market_id) DO UPDATE
+        SET name = EXCLUDED.name, category = EXCLUDED.category;
+    """
+    values = [
+        (m['id'], m['name'], m.get('category', None))
+        for m in markets_list
+    ]
+
+    try:
+        execute_values(cursor, sql, values)
         conn.commit()
     except psycopg2.Error as e:
         conn.rollback()
