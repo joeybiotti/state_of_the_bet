@@ -24,7 +24,7 @@ CREATE TABLE prices (
 CREATE FUNCTION update_timestamp() 
 RETURNS TRIGGER AS $$
 BEGIN
-    NEW.updated_at = NOW();
+    NEW.updated_date = NOW();
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;

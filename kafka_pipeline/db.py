@@ -43,8 +43,11 @@ def insert_contract_data(contract_data):
         INSERT INTO contracts (contract_id, market_id, name, current_price, updated_date)
         VALUES (%s, %s, %s, %s, NOW())
         ON CONFLICT (contract_id) DO UPDATE
-        SET current_price = EXCLUDED.current_price, updated_date = NOW();
+        SET name = EXCLUDED.name,
+            current_price = EXCLUDED.current_price,
+            updated_date = NOW();
     """
+
     values = (
         contract_data.get("id"),
         contract_data.get("market_id"),
